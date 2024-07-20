@@ -20,8 +20,28 @@ interface TranslateRequestBody {
 const translate = async (text: string, from: string, to: string): Promise<string> => {
   const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(text)}`;
   const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Error: ${response.status} ${response.statusText}`);
+  }
+
   const result: any = await response.json();
-  return result[0][0][0];
+
+  // Flatten and join all translation parts into a single string
+  let translatedText = '';
+
+  if (Array.isArray(result)) {
+    result.forEach((part: any) => {
+      if (Array.isArray(part)) {
+        part.forEach((subpart: any) => {
+          if (Array.isArray(subpart) && subpart[0]) {
+            translatedText += subpart[0];
+          }
+        });
+      }
+    });
+  }
+
+  return translatedText;
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
